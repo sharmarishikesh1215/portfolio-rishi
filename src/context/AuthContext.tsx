@@ -77,7 +77,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cleanEmail = email.trim().toLowerCase();
 
     // 1. Built-in local administrator credentials (always available as reliable fallback)
-    const validLocalEmails = ['admin@rishi.dev', 'rishi.sqe@example.com', 'admin@example.com', 'sharmarishikesh12.15@gmail.com'];
+    const validLocalEmails = [
+      'admin@rishi.dev',
+      'rishi.sqe@example.com',
+      'admin@example.com',
+      'sharmarishikesh12.15@gmail.com',
+      'sharmarishiksh@gmail.com',
+    ];
     if (validLocalEmails.includes(cleanEmail) && (password === 'QualityFirst2026!' || password === 'admin123' || password === 'rishi2026')) {
       const adminUser: User = {
         id: 'usr_admin_local',
