@@ -111,7 +111,7 @@ export const defaultProjects: Project[] = [
     full_description:
       'A production-grade test automation architecture designed to perform regression and sanity validation across complex e-commerce customer journeys. Built with thread-safe parallel execution capabilities, dynamic element synchronizers, and comprehensive Allure visual test reports.',
     category: 'Automation Testing',
-    cover_image: 'https://images.unsplash.com/photo-1557821552-17105176677c?q=80&w=1200&auto=format&fit=crop',
+    cover_image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop',
     technologies: ['Java', 'Selenium WebDriver', 'TestNG', 'Maven', 'Page Object Model', 'Allure Reports', 'Git'],
     testing_coverage: [
       'Login and session authentication validation across valid and invalid security permutations.',
@@ -141,7 +141,7 @@ export const defaultProjects: Project[] = [
     full_description:
       'A robust API test suite engineered with Java and RestAssured for high-precision financial services validation. Handles OAuth2 token lifecycles, JSON Schema strict validation, transaction idempotency assertions, and edge-case boundary testing.',
     category: 'API Testing',
-    cover_image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?q=80&w=1200&auto=format&fit=crop',
+    cover_image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=1200&auto=format&fit=crop',
     technologies: ['Java', 'RestAssured', 'TestNG', 'Maven', 'JSON Schema', 'Jackson', 'Postman'],
     testing_coverage: [
       'Mutual TLS and OAuth2 authentication bearer token generation and expiration handling.',
@@ -171,7 +171,7 @@ export const defaultProjects: Project[] = [
     full_description:
       'A resilient mobile automation test harness architected to validate native Android apps across varying screen densities, Android OS versions, and network throttling profiles. Utilizes UIAutomator2 driver with robust locator fallbacks.',
     category: 'Mobile Testing',
-    cover_image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?q=80&w=1200&auto=format&fit=crop',
+    cover_image: 'https://images.unsplash.com/photo-1526470608268-f674ce90ebd4?q=80&w=1200&auto=format&fit=crop',
     technologies: ['Java', 'Appium', 'TestNG', 'Maven', 'Android UIAutomator2', 'ADB', 'Allure'],
     testing_coverage: [
       'Biometric and credentials-based login flows with secure storage validation.',
@@ -229,7 +229,7 @@ export const defaultProjects: Project[] = [
     full_description:
       'A robust continuous testing pipeline engineered with Jenkins and GitHub Actions. Automatically triggers smoke suites on pull requests, nightly regression matrices on main branches, and generates unified Allure telemetry dashboards with Slack alerts.',
     category: 'DevOps & CI/CD',
-    cover_image: 'https://images.unsplash.com/photo-1618401471353-b98aedd04e11?q=80&w=1200&auto=format&fit=crop',
+    cover_image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?q=80&w=1200&auto=format&fit=crop',
     technologies: ['Jenkins', 'GitHub Actions', 'Docker', 'Maven', 'Allure Reports', 'Linux', 'Slack API'],
     testing_coverage: [
       'Automated pull request validation triggering containerized smoke test containers.',

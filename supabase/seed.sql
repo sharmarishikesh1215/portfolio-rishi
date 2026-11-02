@@ -10,7 +10,8 @@ INSERT INTO public.profiles (
     tagline,
     headline,
     bio,
-    current_role,
+    "current_role",
+    current_position,
     career_direction,
     email,
     linkedin_url,
@@ -24,7 +25,8 @@ INSERT INTO public.profiles (
     'Building confidence in every release.',
     'I don''t just test software. I engineer quality.',
     'Software Quality Assurance Engineer experienced in manual testing, automation engineering, API testing, mobile testing, and infrastructure-level validation. Passionate about building reliable applications, scalable automation frameworks, and efficient testing solutions.',
-    'Software QA Engineer – Frugal Testing',
+    'Software QA Engineer - Frugal Testing',
+    'Software QA Engineer - Frugal Testing',
     'SDET / Automation Engineer / Software Development Engineer',
     'sharmarishikesh12.15@gmail.com',
     'https://linkedin.com/in/rishi-sqe',
@@ -36,7 +38,9 @@ INSERT INTO public.profiles (
     professional_title = EXCLUDED.professional_title,
     tagline = EXCLUDED.tagline,
     headline = EXCLUDED.headline,
-    bio = EXCLUDED.bio;
+    bio = EXCLUDED.bio,
+    "current_role" = EXCLUDED."current_role",
+    current_position = EXCLUDED.current_position;
 
 -- 2. Insert Site Settings
 INSERT INTO public.site_settings (setting_key, setting_value) VALUES
@@ -175,7 +179,7 @@ INSERT INTO public.projects (
     'A scalable Selenium Java automation framework for validating an e-commerce web application with Page Object Model and Allure reporting.',
     'A production-grade test automation architecture designed to perform regression and sanity validation across complex e-commerce customer journeys. Built with thread-safe parallel execution capabilities, dynamic element synchronizers, and comprehensive Allure visual test reports.',
     'Automation Testing',
-    '/images/project-ecommerce.png',
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop',
     '["Java", "Selenium WebDriver", "TestNG", "Maven", "Page Object Model", "Allure Reports", "Git"]'::jsonb,
     '[
         "Login and session authentication validation across valid and invalid security permutations.",
@@ -203,7 +207,7 @@ INSERT INTO public.projects (
     'An API automation framework designed to validate secure banking transactions, account operations, and backend microservices.',
     'A robust API test suite engineered with Java and RestAssured for high-precision financial services validation. Handles OAuth2 token lifecycles, JSON Schema strict validation, transaction idempotency assertions, and edge-case boundary testing.',
     'API Testing',
-    '/images/project-banking-api.png',
+    'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=1200&auto=format&fit=crop',
     '["Java", "RestAssured", "TestNG", "Maven", "JSON Schema", "Jackson", "Postman"]'::jsonb,
     '[
         "Mutual TLS and OAuth2 authentication bearer token generation and expiration handling.",
@@ -231,7 +235,7 @@ INSERT INTO public.projects (
     'Automated functional and compatibility testing of native Android applications using Appium and TestNG.',
     'A resilient mobile automation test harness architected to validate native Android apps across varying screen densities, Android OS versions, and network throttling profiles. Utilizes UIAutomator2 driver with robust locator fallbacks.',
     'Mobile Testing',
-    '/images/project-mobile-appium.png',
+    'https://images.unsplash.com/photo-1526470608268-f674ce90ebd4?q=80&w=1200&auto=format&fit=crop',
     '["Java", "Appium", "TestNG", "Maven", "Android UIAutomator2", "ADB", "Allure"]'::jsonb,
     '[
         "Biometric and credentials-based login flows with secure storage validation.",
@@ -258,7 +262,7 @@ INSERT INTO public.projects (
     'Modern high-speed browser automation for testing complex single-page web applications with parallel workers.',
     'Next-generation browser test automation utilizing Playwright with JavaScript/Node.js. Features auto-waiting, network request interception, visual comparison snapshots, and cross-browser testing across Chromium, WebKit, and Firefox.',
     'Automation Testing',
-    '/images/project-playwright.png',
+    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop',
     '["Playwright", "JavaScript", "Node.js", "Chromium", "WebKit", "Firefox", "HTML Reports"]'::jsonb,
     '[
         "Simultaneous cross-browser execution across Chromium, Firefox, and WebKit rendering engines.",
@@ -285,7 +289,7 @@ INSERT INTO public.projects (
     'Automated testing workflows integrated into continuous integration and delivery pipelines with automated gates.',
     'A robust continuous testing pipeline engineered with Jenkins and GitHub Actions. Automatically triggers smoke suites on pull requests, nightly regression matrices on main branches, and generates unified Allure telemetry dashboards with Slack alerts.',
     'DevOps & CI/CD',
-    '/images/project-cicd.png',
+    'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?q=80&w=1200&auto=format&fit=crop',
     '["Jenkins", "GitHub Actions", "Docker", "Maven", "Allure Reports", "Linux", "Slack API"]'::jsonb,
     '[
         "Automated pull request validation triggering containerized smoke test containers.",
@@ -312,7 +316,7 @@ INSERT INTO public.projects (
     'Technical validation project demonstrating service health checks and deployment verification across distributed environments.',
     'A systems-level quality validation suite inspecting backend distributed services in Linux environments. Verifies port connectivity, Kafka consumer group lag, Redis/KeyDB cache eviction policies, and scrapes Grafana telemetry for anomaly detection post-deployment.',
     'Monitoring & Infrastructure',
-    '/images/project-infra.png',
+    'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1200&auto=format&fit=crop',
     '["Linux", "Shell Scripting", "Kafka", "Redis", "KeyDB", "Grafana", "Docker", "cURL"]'::jsonb,
     '[
         "Distributed service availability and heartbeat probes across microservice clusters.",
@@ -337,6 +341,7 @@ ON CONFLICT (slug) DO UPDATE SET
     title = EXCLUDED.title,
     short_description = EXCLUDED.short_description,
     full_description = EXCLUDED.full_description,
+    cover_image = EXCLUDED.cover_image,
     technologies = EXCLUDED.technologies,
     testing_coverage = EXCLUDED.testing_coverage,
     key_highlights = EXCLUDED.key_highlights;
@@ -409,5 +414,5 @@ INSERT INTO public.skills (name, category, display_order, proficiency_level) VAL
 ('MongoDB', 'Database Technologies', 1, 'Intermediate'),
 ('SQL & Relational Databases', 'Database Technologies', 2, 'Advanced'),
 ('Data Integrity Verification', 'Database Technologies', 3, 'Advanced')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name, category) DO NOTHING;
 

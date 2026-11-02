@@ -45,10 +45,15 @@ export const AdminSkills: React.FC = () => {
     await deleteSkill(id);
   };
 
+  // Deduplicate skills by name and category
+  const uniqueSkills = skills.filter((skill, index, self) =>
+    index === self.findIndex((s) => s.name.toLowerCase().trim() === skill.name.toLowerCase().trim() && s.category === skill.category)
+  );
+
   const displayedSkills =
     selectedCategory === 'All'
-      ? skills
-      : skills.filter((s) => s.category === selectedCategory);
+      ? uniqueSkills
+      : uniqueSkills.filter((s) => s.category === selectedCategory);
 
   return (
     <div className="space-y-8">

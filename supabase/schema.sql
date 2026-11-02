@@ -13,11 +13,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     tagline TEXT NOT NULL DEFAULT 'Building confidence in every release.',
     headline TEXT NOT NULL DEFAULT 'I don''t just test software. I engineer quality.',
     bio TEXT NOT NULL DEFAULT 'Software Quality Assurance Engineer experienced in manual testing, automation engineering, API testing, mobile testing, and infrastructure-level validation. Passionate about building reliable applications, scalable automation frameworks, and efficient testing solutions.',
-    current_role TEXT DEFAULT 'Software QA Engineer – Frugal Testing',
+    "current_role" TEXT DEFAULT 'Software QA Engineer - Frugal Testing',
+    current_position TEXT DEFAULT 'Software QA Engineer - Frugal Testing',
     career_direction TEXT DEFAULT 'SDET / Automation Engineer / Software Development Engineer',
-    email TEXT DEFAULT 'rishi.sqe@example.com',
+    email TEXT DEFAULT 'sharmarishikesh12.15@gmail.com',
     linkedin_url TEXT DEFAULT 'https://linkedin.com/in/rishi-sqe',
-    github_url TEXT DEFAULT 'https://github.com/rishi-sqe',
+    github_url TEXT DEFAULT 'https://github.com/sharmarishikesh1215',
     resume_url TEXT DEFAULT '/resume.pdf',
     availability_status TEXT DEFAULT 'Available for SDET & Quality Engineering Roles',
     avatar_url TEXT DEFAULT '',
@@ -80,7 +81,8 @@ CREATE TABLE IF NOT EXISTS public.skills (
     category TEXT NOT NULL,
     display_order INTEGER DEFAULT 0,
     proficiency_level TEXT DEFAULT 'Advanced',
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT skills_name_category_key UNIQUE (name, category)
 );
 
 -- 6. CONTACT MESSAGES TABLE
@@ -113,19 +115,23 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE OR REPLACE TRIGGER update_profiles_modtime
+DROP TRIGGER IF EXISTS update_profiles_modtime ON public.profiles;
+CREATE TRIGGER update_profiles_modtime
     BEFORE UPDATE ON public.profiles
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
-CREATE OR REPLACE TRIGGER update_settings_modtime
+DROP TRIGGER IF EXISTS update_settings_modtime ON public.site_settings;
+CREATE TRIGGER update_settings_modtime
     BEFORE UPDATE ON public.site_settings
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
-CREATE OR REPLACE TRIGGER update_projects_modtime
+DROP TRIGGER IF EXISTS update_projects_modtime ON public.projects;
+CREATE TRIGGER update_projects_modtime
     BEFORE UPDATE ON public.projects
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
-CREATE OR REPLACE TRIGGER update_experiences_modtime
+DROP TRIGGER IF EXISTS update_experiences_modtime ON public.experiences;
+CREATE TRIGGER update_experiences_modtime
     BEFORE UPDATE ON public.experiences
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
@@ -140,78 +146,56 @@ ALTER TABLE public.experiences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 
--- 1. Profiles: Public can read, authenticated admin can update
+-- 1. Profiles
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone."
     ON public.profiles FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can update profiles." ON public.profiles;
 CREATE POLICY "Admins can update profiles."
     ON public.profiles FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- 2. Site Settings: Public can read, authenticated admin can manage
+-- 2. Site Settings
+DROP POLICY IF EXISTS "Public settings are viewable by everyone." ON public.site_settings;
 CREATE POLICY "Public settings are viewable by everyone."
     ON public.site_settings FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage site settings." ON public.site_settings;
 CREATE POLICY "Admins can manage site settings."
     ON public.site_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- 3. Projects: Public can read published projects, authenticated admin can do everything
+-- 3. Projects
+DROP POLICY IF EXISTS "Published projects are viewable by everyone." ON public.projects;
 CREATE POLICY "Published projects are viewable by everyone."
     ON public.projects FOR SELECT USING (published = true);
 
+DROP POLICY IF EXISTS "Admins have full access to projects." ON public.projects;
 CREATE POLICY "Admins have full access to projects."
     ON public.projects FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- 4. Experiences: Public can read, authenticated admin can do everything
+-- 4. Experiences
+DROP POLICY IF EXISTS "Experiences are viewable by everyone." ON public.experiences;
 CREATE POLICY "Experiences are viewable by everyone."
     ON public.experiences FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins have full access to experiences." ON public.experiences;
 CREATE POLICY "Admins have full access to experiences."
     ON public.experiences FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- 5. Skills: Public can read, authenticated admin can do everything
+-- 5. Skills
+DROP POLICY IF EXISTS "Skills are viewable by everyone." ON public.skills;
 CREATE POLICY "Skills are viewable by everyone."
     ON public.skills FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins have full access to skills." ON public.skills;
 CREATE POLICY "Admins have full access to skills."
     ON public.skills FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- 6. Contact Messages: Anyone can insert (with client validation), admin can view/modify
+-- 6. Contact Messages
+DROP POLICY IF EXISTS "Anyone can submit a contact message." ON public.contact_messages;
 CREATE POLICY "Anyone can submit a contact message."
     ON public.contact_messages FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admins have full access to contact messages." ON public.contact_messages;
 CREATE POLICY "Admins have full access to contact messages."
     ON public.contact_messages FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
--- ==============================================================================
--- STORAGE BUCKETS SETUP
--- ==============================================================================
--- Insert storage buckets if they do not exist
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('portfolio-media', 'portfolio-media', true)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('documents', 'documents', true)
-ON CONFLICT (id) DO NOTHING;
-
--- Storage Policies: Public Read
-CREATE POLICY "Public Media Access"
-ON storage.objects FOR SELECT
-USING (bucket_id IN ('portfolio-media', 'documents'));
-
--- Storage Policies: Admin Upload / Update / Delete
-CREATE POLICY "Admin Media Upload"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id IN ('portfolio-media', 'documents'));
-
-CREATE POLICY "Admin Media Modify"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (bucket_id IN ('portfolio-media', 'documents'));
-
-CREATE POLICY "Admin Media Delete"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (bucket_id IN ('portfolio-media', 'documents'));
-

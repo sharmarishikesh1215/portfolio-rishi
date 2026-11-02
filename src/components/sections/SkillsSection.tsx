@@ -20,10 +20,15 @@ export const SkillsSection: React.FC = () => {
   const { skills } = usePortfolio();
   const [activeCategory, setActiveCategory] = useState<string>('All');
 
+  // Deduplicate skills by name and category to guarantee zero duplicate chips
+  const uniqueSkills = skills.filter((skill, index, self) =>
+    index === self.findIndex((s) => s.name.toLowerCase().trim() === skill.name.toLowerCase().trim() && s.category === skill.category)
+  );
+
   const filteredSkills =
     activeCategory === 'All'
-      ? skills
-      : skills.filter((s) => s.category === activeCategory);
+      ? uniqueSkills
+      : uniqueSkills.filter((s) => s.category === activeCategory);
 
   // Group skills by category for "All" view or current category
   const categoriesToShow =
@@ -56,11 +61,11 @@ export const SkillsSection: React.FC = () => {
                 : 'bg-apple-gray-100 dark:bg-apple-dark-surface text-apple-light-secondary dark:text-apple-dark-secondary hover:text-apple-light-primary dark:hover:text-apple-dark-primary border border-black/5 dark:border-white/10'
             }`}
           >
-            All Disciplines ({skills.length})
+            All Disciplines ({uniqueSkills.length})
           </button>
 
           {ALL_CATEGORIES.map((cat) => {
-            const count = skills.filter((s) => s.category === cat).length;
+            const count = uniqueSkills.filter((s) => s.category === cat).length;
             if (count === 0) return null;
 
             return (

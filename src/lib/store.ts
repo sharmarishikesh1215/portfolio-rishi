@@ -197,15 +197,24 @@ export function usePortfolioData() {
           saveLocal(STORAGE_KEYS.EXPERIENCES, mappedExp);
         }
 
-        // 5. Fetch Skills
+        // 5. Fetch Skills (with deduplication)
         const { data: skillsData } = await client
           .from('skills')
           .select('*')
           .order('display_order', { ascending: true });
 
         if (skillsData && skillsData.length > 0) {
-          setSkillsState(skillsData as Skill[]);
-          saveLocal(STORAGE_KEYS.SKILLS, skillsData);
+          const deduped: Skill[] = [];
+          const seen = new Set<string>();
+          skillsData.forEach((s: any) => {
+            const key = `${s.name.toLowerCase().trim()}_${s.category}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              deduped.push(s as Skill);
+            }
+          });
+          setSkillsState(deduped);
+          saveLocal(STORAGE_KEYS.SKILLS, deduped);
         }
 
         // 6. Fetch Messages
