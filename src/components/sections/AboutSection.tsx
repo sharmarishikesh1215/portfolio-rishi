@@ -114,10 +114,18 @@ export const AboutSection: React.FC = () => {
             {statistics.map((stat, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-white dark:bg-apple-dark-surface border border-black/5 dark:border-white/10 shadow-apple-sm flex flex-col justify-between hover:border-black/15 dark:hover:border-white/20 transition-all"
+                className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-apple-dark-surface border border-black/5 dark:border-white/10 shadow-apple-sm flex flex-col justify-between hover:border-black/15 dark:hover:border-white/20 transition-all overflow-hidden"
               >
                 <div>
-                  <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-apple-light-primary dark:text-apple-dark-primary block mb-1">
+                  <span
+                    className={`font-extrabold tracking-tight text-apple-light-primary dark:text-apple-dark-primary block mb-1 break-words ${
+                      stat.value.length > 8
+                        ? 'text-xl sm:text-2xl leading-tight'
+                        : stat.value.length > 5
+                        ? 'text-2xl sm:text-3xl leading-tight'
+                        : 'text-3xl sm:text-4xl'
+                    }`}
+                  >
                     {stat.value}
                   </span>
                   <span className="text-xs sm:text-sm font-semibold text-apple-light-primary dark:text-apple-dark-primary block mb-1">
