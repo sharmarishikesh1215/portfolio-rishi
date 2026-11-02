@@ -94,7 +94,7 @@ export const AdminLogin: React.FC = () => {
       </div>
 
       {/* Login Card */}
-      <div className="max-w-md mx-auto w-full my-auto animate-in zoom-in-95 duration-300">
+      <div className="max-w-md mx-auto w-full my-auto py-6 animate-in zoom-in-95 duration-300">
         <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-apple-dark-surface border border-black/10 dark:border-white/10 shadow-apple-lg">
           <div className="text-center mb-6">
             <div className="w-12 h-12 rounded-2xl bg-apple-light-accent/10 dark:bg-apple-dark-accent/10 text-apple-light-accent dark:text-apple-dark-accent mx-auto flex items-center justify-center mb-4">
@@ -247,7 +247,7 @@ export const AdminLogin: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="text-center text-xs text-apple-light-secondary dark:text-apple-dark-secondary">
+      <div className="mt-10 pt-6 pb-2 text-center text-xs text-apple-light-secondary dark:text-apple-dark-secondary">
         Rishi Portfolio Admin &bull; Secure Session Protection
       </div>
     </div>
