@@ -119,10 +119,8 @@ export const AboutSection: React.FC = () => {
                 <div>
                   <span
                     className={`font-extrabold tracking-tight text-apple-light-primary dark:text-apple-dark-primary block mb-1 break-words ${
-                      stat.value.length > 8
+                      stat.value.length > 4
                         ? 'text-xl sm:text-2xl leading-tight'
-                        : stat.value.length > 5
-                        ? 'text-2xl sm:text-3xl leading-tight'
                         : 'text-3xl sm:text-4xl'
                     }`}
                   >
