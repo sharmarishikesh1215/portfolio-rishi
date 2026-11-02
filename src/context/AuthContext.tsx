@@ -12,6 +12,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isSupabaseConnected: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string; message?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -95,8 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Default built-in local administrator credentials for initial evaluation / offline use
-    // Default admin: admin@rishi.dev / admin123 or QualityEngineer2026!
-    const validEmails = ['admin@rishi.dev', 'rishi.sqe@example.com', 'admin@example.com'];
+    // Default admin: admin@rishi.dev / admin123 or QualityFirst2026!
+    const validEmails = ['admin@rishi.dev', 'rishi.sqe@example.com', 'admin@example.com', 'sharmarishikesh12.15@gmail.com'];
     if (validEmails.includes(email.toLowerCase()) && (password === 'QualityFirst2026!' || password === 'admin123' || password === 'rishi2026')) {
       const adminUser: User = {
         id: 'usr_admin_local',
@@ -109,8 +110,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return {
       success: false,
-      error: 'Invalid credentials. Please use admin@rishi.dev / QualityFirst2026! or your Supabase credentials.',
+      error: 'Invalid credentials. Please use admin@rishi.dev / QualityFirst2026! or your registered Supabase credentials.',
     };
+  };
+
+  const signUp = async (email: string, password: string): Promise<{ success: boolean; error?: string; message?: string }> => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) {
+          return { success: false, error: error.message };
+        }
+        if (data.session?.user) {
+          setUser({
+            id: data.session.user.id,
+            email: data.session.user.email || '',
+          });
+          return { success: true };
+        } else if (data.user) {
+          return {
+            success: true,
+            message: 'Account created! If email confirmation is enabled, check your inbox to confirm before signing in.',
+          };
+        }
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Registration failed' };
+      }
+    }
+    return { success: false, error: 'Supabase connection is not detected. Please verify your environment variables.' };
   };
 
   const logout = async () => {
@@ -133,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin: Boolean(user),
         isSupabaseConnected: isSupabaseConfigured,
         login,
+        signUp,
         logout,
       }}
     >
