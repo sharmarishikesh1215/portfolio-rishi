@@ -9,7 +9,7 @@ export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [email, setEmail] = useState('sharmarishiksh@gmail.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
@@ -165,7 +165,7 @@ export const AdminLogin: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="sharmarishiksh@gmail.com"
+                  placeholder="abc@gmail.com"
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-apple-gray-100 dark:bg-black/50 border border-black/5 dark:border-white/10 text-sm text-apple-light-primary dark:text-apple-dark-primary placeholder:text-apple-light-secondary/40 focus:outline-none focus:border-apple-light-accent dark:focus:border-apple-dark-accent transition-colors"
                 />
                 <Mail className="w-4 h-4 text-apple-light-secondary dark:text-apple-dark-secondary absolute left-3.5 top-3.5" />
