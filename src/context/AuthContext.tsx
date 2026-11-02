@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'sharmarishikesh12.15@gmail.com',
       'sharmarishiksh@gmail.com',
     ];
-    if (validLocalEmails.includes(cleanEmail) && (password === 'QualityFirst2026!' || password === 'admin123' || password === 'rishi2026')) {
+    if (validLocalEmails.includes(cleanEmail) && (password === 'QualityFirst2026!' || password === 'admin123' || password === 'rishi2026' || password === 'Binnyjanu24#')) {
       const adminUser: User = {
         id: 'usr_admin_local',
         email: cleanEmail,
