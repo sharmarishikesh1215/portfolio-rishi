@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, ArrowLeft, CheckCircle2, UserPlus, LogIn, Sparkles, Send } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, ArrowLeft, CheckCircle2, UserPlus, LogIn, Send } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
 
@@ -51,19 +51,6 @@ export const AdminLogin: React.FC = () => {
       } else {
         setError(result.error || 'Authentication failed. Please verify credentials.');
       }
-    }
-  };
-
-  const handleInstantDemoLogin = async () => {
-    setError('');
-    setInfoMessage('');
-    setLoading(true);
-    const result = await login('admin@rishi.dev', 'QualityFirst2026!');
-    setLoading(false);
-    if (result.success) {
-      navigate('/admin');
-    } else {
-      setError(result.error || 'Failed to sign in.');
     }
   };
 
@@ -208,7 +195,7 @@ export const AdminLogin: React.FC = () => {
               className="w-full mt-2 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-apple-light-accent dark:bg-apple-dark-accent text-white dark:text-black font-semibold text-sm hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
             >
               {loading ? (
-                <span>Processing...</span>
+                <span>Authenticating...</span>
               ) : (
                 <>
                   <span>{mode === 'signup' ? 'Create Admin Account' : 'Sign In'}</span>
@@ -218,29 +205,13 @@ export const AdminLogin: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick 1-Click Evaluation Login */}
-          <div className="mt-6 pt-5 border-t border-black/5 dark:border-white/10 text-center space-y-3">
-            <button
-              type="button"
-              onClick={handleInstantDemoLogin}
-              disabled={loading}
-              className="w-full py-2.5 px-4 rounded-xl border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 text-xs font-semibold text-apple-light-primary dark:text-apple-dark-primary flex items-center justify-center gap-2 transition-all hover:bg-black/5 dark:hover:bg-white/5 active:scale-98"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Instant Evaluation Sign In (admin@rishi.dev)</span>
-            </button>
-
+          {/* Supabase Status */}
+          <div className="mt-6 pt-5 border-t border-black/5 dark:border-white/10 text-center">
             <p className="text-[11px] text-apple-light-secondary dark:text-apple-dark-secondary leading-relaxed">
-              {isSupabaseConnected ? (
-                <span className="text-emerald-500 font-medium inline-flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                  Supabase Auth Connected
-                </span>
-              ) : (
-                <span className="text-amber-500 font-medium">
-                  Supabase not detected &bull; Offline demo active
-                </span>
-              )}
+              <span className="text-emerald-500 font-medium inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                Supabase Auth Protected
+              </span>
             </p>
           </div>
         </div>

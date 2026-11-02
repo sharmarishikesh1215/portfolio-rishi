@@ -76,25 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Built-in local administrator credentials (always available as reliable fallback)
-    const validLocalEmails = [
-      'admin@rishi.dev',
-      'rishi.sqe@example.com',
-      'admin@example.com',
-      'sharmarishikesh12.15@gmail.com',
-      'sharmarishiksh@gmail.com',
-    ];
-    if (validLocalEmails.includes(cleanEmail) && (password === 'QualityFirst2026!' || password === 'admin123' || password === 'rishi2026' || password === 'Binnyjanu24#')) {
-      const adminUser: User = {
-        id: 'usr_admin_local',
-        email: cleanEmail,
-      };
-      setUser(adminUser);
-      localStorage.setItem(LOCAL_ADMIN_KEY, JSON.stringify(adminUser));
-      return { success: true };
-    }
-
-    // 2. Real Supabase Authentication
+    // Supabase Authentication
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -126,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return {
       success: false,
-      error: 'Invalid credentials. You can use the pre-configured credentials: admin@rishi.dev / QualityFirst2026!',
+      error: 'Invalid credentials. Please verify your email and password.',
     };
   };
 
