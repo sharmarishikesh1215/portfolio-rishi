@@ -13,6 +13,7 @@ interface AuthContextType {
   isSupabaseConnected: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  resendConfirmation: (email: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -73,16 +74,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    // If Supabase is configured, use real Supabase authentication
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Built-in local administrator credentials (always available as reliable fallback)
+    const validLocalEmails = ['admin@rishi.dev', 'rishi.sqe@example.com', 'admin@example.com', 'sharmarishikesh12.15@gmail.com'];
+    if (validLocalEmails.includes(cleanEmail) && (password === 'QualityFirst2026!' || password === 'admin123' || password === 'rishi2026')) {
+      const adminUser: User = {
+        id: 'usr_admin_local',
+        email: cleanEmail,
+      };
+      setUser(adminUser);
+      localStorage.setItem(LOCAL_ADMIN_KEY, JSON.stringify(adminUser));
+      return { success: true };
+    }
+
+    // 2. Real Supabase Authentication
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: cleanEmail,
           password,
         });
+
         if (error) {
+          if (error.message.toLowerCase().includes('email not confirmed')) {
+            return {
+              success: false,
+              error: 'Email not confirmed in Supabase. Check your inbox for the confirmation link, or confirm it in Supabase Dashboard (Authentication > Users > Confirm User).',
+            };
+          }
           return { success: false, error: error.message };
         }
+
         if (data.user) {
           setUser({
             id: data.user.id,
@@ -95,30 +118,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Default built-in local administrator credentials for initial evaluation / offline use
-    // Default admin: admin@rishi.dev / admin123 or QualityFirst2026!
-    const validEmails = ['admin@rishi.dev', 'rishi.sqe@example.com', 'admin@example.com', 'sharmarishikesh12.15@gmail.com'];
-    if (validEmails.includes(email.toLowerCase()) && (password === 'QualityFirst2026!' || password === 'admin123' || password === 'rishi2026')) {
-      const adminUser: User = {
-        id: 'usr_admin_local',
-        email: email.toLowerCase(),
-      };
-      setUser(adminUser);
-      localStorage.setItem(LOCAL_ADMIN_KEY, JSON.stringify(adminUser));
-      return { success: true };
-    }
-
     return {
       success: false,
-      error: 'Invalid credentials. Please use admin@rishi.dev / QualityFirst2026! or your registered Supabase credentials.',
+      error: 'Invalid credentials. You can use the pre-configured credentials: admin@rishi.dev / QualityFirst2026!',
     };
   };
 
   const signUp = async (email: string, password: string): Promise<{ success: boolean; error?: string; message?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: cleanEmail,
           password,
         });
         if (error) {
@@ -133,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (data.user) {
           return {
             success: true,
-            message: 'Account created! If email confirmation is enabled, check your inbox to confirm before signing in.',
+            message: 'Account created! Please check your email to confirm registration or confirm in Supabase dashboard.',
           };
         }
       } catch (err: any) {
@@ -141,6 +152,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     return { success: false, error: 'Supabase connection is not detected. Please verify your environment variables.' };
+  };
+
+  const resendConfirmation = async (email: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: cleanEmail,
+        });
+        if (error) {
+          return { success: false, error: error.message };
+        }
+        return { success: true, message: 'Confirmation email resent to ' + cleanEmail };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Failed to resend confirmation email.' };
+      }
+    }
+    return { success: false, error: 'Supabase is not connected.' };
   };
 
   const logout = async () => {
@@ -164,6 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSupabaseConnected: isSupabaseConfigured,
         login,
         signUp,
+        resendConfirmation,
         logout,
       }}
     >
