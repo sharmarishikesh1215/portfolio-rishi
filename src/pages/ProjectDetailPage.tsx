@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Github, ExternalLink, ShieldCheck, CheckCircle2, Layers, Code2 } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
-import { ShibaMascot } from '../components/mascot/ShibaMascot';
+import { CatMascot } from '../components/mascot/CatMascot';
 import { usePortfolio } from '../context/PortfolioContext';
 
 export const ProjectDetailPage: React.FC = () => {
@@ -192,7 +192,7 @@ export const ProjectDetailPage: React.FC = () => {
       </main>
 
       <Footer />
-      <ShibaMascot />
+      <CatMascot />
     </div>
   );
 };
