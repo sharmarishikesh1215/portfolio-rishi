@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX, X, Heart, Moon, Sun, Play, Fish } from 'lucide-react';
+import { Volume2, VolumeX, X, Heart, Moon, Sun, Play, Fish, Compass, Navigation, Crosshair } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { CAT_ANIMATIONS, SpriteFrame } from './catSpriteData';
 
 // Cat & SDET dialogues
 const CAT_DIALOGUES = [
@@ -17,16 +18,38 @@ const CAT_DIALOGUES = [
   "Continuous Integration? More like Continuous Purring! ✨",
   "Playwright & Selenium tested & cat-approved! 🐾",
   "Did someone say fish treats or test suites? 🐟",
+  "End-to-end verified with feline precision! 🎯",
 ];
 
-export type CatPose = 'sploot' | 'sit' | 'walk' | 'meow' | 'pet' | 'jump' | 'loaf';
+export type CatAction =
+  | 'sploot'
+  | 'sit'
+  | 'walk'
+  | 'run'
+  | 'wash'
+  | 'sleep'
+  | 'meow'
+  | 'pet'
+  | 'startled';
+
+export type MascotMode = 'patrol' | 'chase' | 'laser';
 
 export const CatMascot: React.FC = () => {
-  const [pose, setPose] = useState<CatPose>('sploot');
-  const [positionX, setPositionX] = useState<number>(75); // % from left
-  const [direction, setDirection] = useState<1 | -1>(-1); // 1: right, -1: left
-  const [speech, setSpeech] = useState<string | null>("Meow! I'm Mochi, Rishi's QA cat! 🐾");
+  // Navigation & Position State
+  const [catPos, setCatPos] = useState<{ x: number; y: number }>({
+    x: typeof window !== 'undefined' ? window.innerWidth * 0.75 : 800,
+    y: typeof window !== 'undefined' ? window.innerHeight - 90 : 600,
+  });
+  const [direction, setDirection] = useState<1 | -1>(-1); // 1 = right, -1 = left
+  const [mode, setMode] = useState<MascotMode>('chase'); // Default to popular Oneko chase mode!
+  const [action, setAction] = useState<CatAction>('sploot');
+  const [frameIndex, setFrameIndex] = useState<number>(0);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [speech, setSpeech] = useState<string | null>("Meow! I'm Mochi, Rishi's QA cat! 🐾 Move your mouse!");
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [treatFalling, setTreatFalling] = useState<boolean>(false);
+  const [laserPos, setLaserPos] = useState<{ x: number; y: number }>({ x: -100, y: -100 });
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [isMinimized, setIsMinimized] = useState<boolean>(() => {
     try {
       return localStorage.getItem('cat_minimized') === 'true';
@@ -34,15 +57,17 @@ export const CatMascot: React.FC = () => {
       return false;
     }
   });
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
-  const [isHovered, setIsHovered] = useState<boolean>(false);
-  const [walkFrame, setWalkFrame] = useState<number>(0);
-  const [treatFalling, setTreatFalling] = useState<boolean>(false);
 
+  const mousePosRef = useRef<{ x: number; y: number }>({
+    x: typeof window !== 'undefined' ? window.innerWidth * 0.5 : 500,
+    y: typeof window !== 'undefined' ? window.innerHeight * 0.5 : 400,
+  });
+  const idleTimerRef = useRef<number>(0);
   const speechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasSleepingRef = useRef<boolean>(false);
 
   // Web Audio 8-bit kitten sound synthesizer
-  const playSound = useCallback((type: 'meow' | 'purr' | 'jump' | 'chomp') => {
+  const playSound = useCallback((type: 'meow' | 'purr' | 'jump' | 'chomp' | 'surprise') => {
     if (!soundEnabled) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -50,28 +75,27 @@ export const CatMascot: React.FC = () => {
       const ctx = new AudioCtx();
 
       if (type === 'meow') {
-        // Classic kitten "me-o-w~" frequency curve (rise and fall)
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'triangle';
         const now = ctx.currentTime;
         osc.frequency.setValueAtTime(540, now);
-        osc.frequency.exponentialRampToValueAtTime(820, now + 0.1);
-        osc.frequency.exponentialRampToValueAtTime(460, now + 0.28);
+        osc.frequency.exponentialRampToValueAtTime(840, now + 0.09);
+        osc.frequency.exponentialRampToValueAtTime(480, now + 0.26);
         gain.gain.setValueAtTime(0.01, now);
-        gain.gain.linearRampToValueAtTime(0.18, now + 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+        gain.gain.linearRampToValueAtTime(0.18, now + 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.26);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start();
-        osc.stop(now + 0.28);
+        osc.stop(now + 0.26);
       } else if (type === 'jump') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(360, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(740, ctx.currentTime + 0.14);
-        gain.gain.setValueAtTime(0.14, ctx.currentTime);
+        osc.frequency.setValueAtTime(340, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(720, ctx.currentTime + 0.14);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -89,9 +113,22 @@ export const CatMascot: React.FC = () => {
         gain.connect(ctx.destination);
         osc.start();
         osc.stop(ctx.currentTime + 0.09);
+      } else if (type === 'surprise') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        const now = ctx.currentTime;
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(980, now + 0.1);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(now + 0.12);
       }
     } catch {
-      // Audio context error handling
+      // AudioContext policy
     }
   }, [soundEnabled]);
 
@@ -103,72 +140,163 @@ export const CatMascot: React.FC = () => {
     }, duration);
   }, []);
 
-  // Walk cycle animation ticker
+  // Frame ticker customized by action for authentic retro cadence
   useEffect(() => {
-    if (pose !== 'walk') return;
-    const interval = setInterval(() => {
-      setWalkFrame((f) => (f + 1) % 4);
-    }, 180);
-    return () => clearInterval(interval);
-  }, [pose]);
+    const delays: Record<CatAction, number> = {
+      run: 100,      // Fast sprint
+      walk: 140,     // Steady trot
+      sploot: 200,   // Belly crawl / stretch
+      wash: 220,     // Grooming face
+      sleep: 360,    // Slow breathing
+      meow: 180,     // Meow cycles
+      pet: 140,      // Purring vibration
+      sit: 280,      // Idle sitting
+      startled: 300, // Surprise
+    };
 
-  // Autonomous behavior loop
+    const delay = delays[action] || 160;
+    const timer = setInterval(() => {
+      setFrameIndex((f) => f + 1);
+    }, delay);
+
+    return () => clearInterval(timer);
+  }, [action]);
+
+  // Mouse Listener for Chase & Laser Modes
   useEffect(() => {
-    if (isMinimized || isHovered || pose === 'loaf' || pose === 'jump' || pose === 'meow') return;
-
-    const interval = setInterval(() => {
-      const rand = Math.random();
-
-      if (rand < 0.35) {
-        // Sploot pose (like in reference image!)
-        setPose('sploot');
-        setTimeout(() => {
-          setPose((p) => (p === 'sploot' ? 'sit' : p));
-        }, 5000 + Math.random() * 3000);
-      } else if (rand < 0.6) {
-        // Sit upright
-        setPose('sit');
-        setTimeout(() => {
-          setPose((p) => (p === 'sit' ? 'walk' : p));
-        }, 3500 + Math.random() * 2000);
-      } else {
-        // Walk along bottom
-        setPose('walk');
-        setPositionX((prev) => {
-          const step = (Math.random() * 8 + 5) * direction;
-          let next = prev + step;
-          if (next > 86) {
-            next = 86;
-            setDirection(-1);
-          } else if (next < 10) {
-            next = 10;
-            setDirection(1);
-          }
-          return next;
-        });
+    const handleMouseMove = (e: MouseEvent) => {
+      mousePosRef.current = { x: e.clientX, y: e.clientY };
+      if (mode === 'laser') {
+        setLaserPos({ x: e.clientX, y: e.clientY });
       }
-    }, 4500);
+      idleTimerRef.current = 0; // reset idle
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mode]);
+
+  // Main Movement & Animation State Tick Loop (Runs every ~90ms for fluid responsiveness)
+  useEffect(() => {
+    if (isMinimized || isHovered) return;
+
+    const interval = setInterval(() => {
+      if (mode === 'chase' || mode === 'laser') {
+        // ONEKO / LASER STYLE: Follow mouse pointer across screen
+        const targetX = mousePosRef.current.x;
+        const targetY = mousePosRef.current.y;
+        const dx = targetX - catPos.x;
+        const dy = targetY - catPos.y;
+        const dist = Math.hypot(dx, dy);
+
+        // Turn towards target
+        if (Math.abs(dx) > 10) {
+          setDirection(dx >= 0 ? 1 : -1);
+        }
+
+        if (dist > 52) {
+          // If cat was asleep or splooting, trigger quick alert / startled animation
+          if (wasSleepingRef.current) {
+            wasSleepingRef.current = false;
+            setAction('startled');
+            playSound('surprise');
+            return;
+          }
+
+          if (dist > 150) {
+            // Far away: FAST SPRINT RUN
+            const speed = Math.min(dist * 0.16, 16);
+            const nextX = catPos.x + (dx / dist) * speed;
+            const nextY = catPos.y + (dy / dist) * speed;
+            setCatPos({ x: nextX, y: nextY });
+            setAction('run');
+          } else {
+            // Medium distance: TROTTING WALK
+            const speed = Math.min(dist * 0.12, 9);
+            const nextX = catPos.x + (dx / dist) * speed;
+            const nextY = catPos.y + (dy / dist) * speed;
+            setCatPos({ x: nextX, y: nextY });
+            setAction('walk');
+          }
+        } else {
+          // Arrived at target!
+          idleTimerRef.current += 1;
+          const idleCount = idleTimerRef.current;
+
+          if (mode === 'laser') {
+            // In laser mode, pounce on the dot!
+            setAction('sploot');
+          } else {
+            // Natural progression of cat behaviors near cursor:
+            if (idleCount < 4) {
+              setAction('sit'); // Alert sitting & looking at cursor
+            } else if (idleCount < 9) {
+              setAction('wash'); // Grooming face with paw
+            } else if (idleCount < 16) {
+              setAction('sploot'); // Iconic belly stretch crawl from photo!
+            } else {
+              setAction('sleep'); // Cozy loaf with floating Zzz
+              wasSleepingRef.current = true;
+            }
+          }
+        }
+      } else {
+        // PATROL MODE: Prowl along the bottom edge of viewport
+        const groundY = window.innerHeight - 85;
+
+        if (action === 'walk') {
+          setCatPos((prev) => {
+            const nextX = prev.x + 7 * direction;
+            if (nextX > window.innerWidth - 110) {
+              setDirection(-1);
+              return { x: window.innerWidth - 110, y: groundY };
+            } else if (nextX < 40) {
+              setDirection(1);
+              return { x: 40, y: groundY };
+            }
+            return { x: nextX, y: groundY };
+          });
+
+          // Chance to stop and stretch / sit / wash
+          if (Math.random() < 0.07) {
+            const rand = Math.random();
+            if (rand < 0.45) {
+              setAction('sploot'); // The reference image pose!
+            } else if (rand < 0.75) {
+              setAction('sit');
+            } else {
+              setAction('wash');
+            }
+          }
+        } else if (action === 'sploot' || action === 'sit' || action === 'wash' || action === 'sleep') {
+          // Stay in pose for a few seconds then resume walking
+          if (Math.random() < 0.05) {
+            setAction('walk');
+          }
+        }
+      }
+    }, 90);
 
     return () => clearInterval(interval);
-  }, [direction, isMinimized, isHovered, pose]);
+  }, [mode, catPos, direction, action, isMinimized, isHovered, playSound]);
 
-  // Occasional random chatter
+  // Occasional witty banter
   useEffect(() => {
     if (isMinimized) return;
     const interval = setInterval(() => {
-      if (!speech && Math.random() > 0.4 && pose !== 'loaf') {
+      if (!speech && Math.random() > 0.45 && action !== 'sleep') {
         const randomQuote = CAT_DIALOGUES[Math.floor(Math.random() * CAT_DIALOGUES.length)];
-        showSpeech(randomQuote, 4500);
+        showSpeech(randomQuote, 4200);
       }
     }, 24000);
     return () => clearInterval(interval);
-  }, [isMinimized, speech, pose, showSpeech]);
+  }, [isMinimized, speech, action, showSpeech]);
 
-  // Click: Jump & Meow with confetti
+  // Click handler (Jump & Meow with confetti)
   const handleCatClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     playSound('meow');
-    setPose('jump');
+    setAction('meow');
 
     // Heart particles
     const rect = e.currentTarget.getBoundingClientRect();
@@ -184,11 +312,11 @@ export const CatMascot: React.FC = () => {
       const xRatio = (rect.left + rect.width / 2) / window.innerWidth;
       const yRatio = (rect.top + rect.height / 2) / window.innerHeight;
       confetti({
-        particleCount: 16,
+        particleCount: 18,
         startVelocity: 16,
         spread: 60,
         origin: { x: xRatio, y: yRatio },
-        colors: ['#BA9A93', '#FFFBEA', '#DE7382', '#F43F5E', '#10B981'],
+        colors: ['#C7A99D', '#FDFFE3', '#DE7382', '#F43F5E', '#10B981'],
         disableForReducedMotion: true,
       });
     } catch {
@@ -199,25 +327,22 @@ export const CatMascot: React.FC = () => {
     showSpeech(randomQuote, 4000);
 
     setTimeout(() => {
-      setPose('meow');
-      setTimeout(() => {
-        setPose('sploot');
-      }, 1000);
-    }, 600);
+      setAction('sploot');
+    }, 1400);
   };
 
-  // Hover: Petting
+  // Hover Petting
   const handleMouseEnter = () => {
     setIsHovered(true);
-    if (pose !== 'loaf') {
-      setPose('pet');
+    if (action !== 'sleep') {
+      setAction('pet');
     }
   };
 
   const handleMouseLeave = () => {
     setIsHovered(false);
-    if (pose === 'pet') {
-      setPose('sploot');
+    if (action === 'pet') {
+      setAction('sploot');
     }
   };
 
@@ -226,39 +351,57 @@ export const CatMascot: React.FC = () => {
     e.stopPropagation();
     if (treatFalling) return;
     setTreatFalling(true);
-    setPose('jump');
+    setAction('run');
     playSound('jump');
     showSpeech("Ooh! Fresh fish for passing test cases! 🐟", 3000);
 
     setTimeout(() => {
       playSound('chomp');
       setTreatFalling(false);
-      setPose('pet');
+      setAction('pet');
       showSpeech("*Crunch crunch* Purr... 100% delicious! Good SDET cat! 🐾", 3500);
-      setTimeout(() => setPose('sploot'), 2000);
+      setTimeout(() => setAction('sploot'), 2000);
     }, 1100);
   };
 
-  // Toggle Loaf / Sploot
-  const toggleLoaf = (e: React.MouseEvent) => {
+  // Toggle Sleep / Sploot
+  const toggleSleep = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (pose === 'loaf') {
-      setPose('sploot');
+    if (action === 'sleep') {
+      setAction('sploot');
       playSound('meow');
       showSpeech("Stretching out into a cute sploot! 🐱", 3000);
     } else {
-      setPose('loaf');
+      setAction('sleep');
       showSpeech("Loafing around while regression suite runs... Zzz 💤", 3500);
     }
   };
 
-  // Trigger Meow
+  // Cycle Mascot Modes (Chase -> Laser -> Patrol)
+  const cycleNavigationMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (mode === 'chase') {
+      setMode('laser');
+      showSpeech("Laser Pointer Activated! Move mouse to play! 🔴✨", 3500);
+      playSound('meow');
+    } else if (mode === 'laser') {
+      setMode('patrol');
+      setCatPos((prev) => ({ x: prev.x, y: window.innerHeight - 85 }));
+      showSpeech("Patrolling the bottom of your screen! 🐱", 3000);
+    } else {
+      setMode('chase');
+      showSpeech("Oneko Cursor Chasing Active! Move your mouse! 🐾", 3500);
+      playSound('meow');
+    }
+  };
+
+  // Manual Meow
   const handleManualMeow = (e: React.MouseEvent) => {
     e.stopPropagation();
     playSound('meow');
-    setPose('meow');
+    setAction('meow');
     showSpeech("MEOW! All release checks purr-fectly green! 🐱✅", 3000);
-    setTimeout(() => setPose('sploot'), 1400);
+    setTimeout(() => setAction('sploot'), 1400);
   };
 
   const handleMinimize = (e: React.MouseEvent) => {
@@ -281,6 +424,10 @@ export const CatMascot: React.FC = () => {
     showSpeech("I'm back! Ready to test! 🐾", 3000);
     playSound('meow');
   };
+
+  // Retrieve current active sprite frame
+  const framesList: SpriteFrame[] = CAT_ANIMATIONS[action] || CAT_ANIMATIONS.sploot;
+  const currentSprite: SpriteFrame = framesList[frameIndex % framesList.length];
 
   // Minimized corner badge
   if (isMinimized) {
@@ -305,21 +452,27 @@ export const CatMascot: React.FC = () => {
   }
 
   return (
-    <div
-      className="fixed bottom-0 left-0 right-0 pointer-events-none z-40 select-none overflow-visible"
-      style={{ height: 160 }}
-    >
-      {/* Floating Animated Cat along bottom positionX */}
+    <div className="fixed inset-0 pointer-events-none z-40 select-none overflow-hidden">
+      {/* Laser Pointer Dot in Laser Mode */}
+      {mode === 'laser' && (
+        <div
+          className="fixed pointer-events-none z-50 w-3 h-3 rounded-full bg-red-500 shadow-[0_0_12px_#EF4444] animate-ping"
+          style={{ left: laserPos.x - 6, top: laserPos.y - 6 }}
+        />
+      )}
+
+      {/* Dynamic Positioned Animated Cat */}
       <motion.div
-        className="absolute bottom-2 pointer-events-auto cursor-pointer"
+        className="absolute pointer-events-auto cursor-pointer"
         animate={{
-          left: `${positionX}%`,
-          y: pose === 'jump' ? [-6, -34, -4] : 0,
+          x: catPos.x,
+          y: catPos.y,
         }}
         transition={{
-          left: { duration: 3.5, ease: 'easeInOut' },
-          y: { duration: 0.6, ease: 'easeInOut' },
+          x: { duration: 0.22, ease: 'linear' },
+          y: { duration: 0.22, ease: 'easeOut' },
         }}
+        style={{ left: 0, top: 0 }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleCatClick}
@@ -367,7 +520,6 @@ export const CatMascot: React.FC = () => {
               className="absolute -top-16 left-1/2 -translate-x-1/2 min-w-[210px] max-w-[280px] p-2.5 rounded-2xl bg-white/95 dark:bg-apple-dark-surface/95 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-apple-lg text-xs font-medium text-apple-light-primary dark:text-apple-dark-primary text-center pointer-events-none z-50"
             >
               <p className="leading-snug">{speech}</p>
-              {/* Little Speech Pointer */}
               <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-apple-dark-surface border-r border-b border-black/10 dark:border-white/15 rotate-45"></div>
             </motion.div>
           )}
@@ -380,9 +532,30 @@ export const CatMascot: React.FC = () => {
               initial={{ opacity: 0, y: 6, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 4, scale: 0.95 }}
-              className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 rounded-full bg-white/95 dark:bg-apple-dark-surface/95 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-apple-sm z-50"
+              className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 rounded-full bg-white/95 dark:bg-apple-dark-surface/95 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-apple-sm z-50"
               onClick={(e) => e.stopPropagation()}
             >
+              <button
+                type="button"
+                onClick={cycleNavigationMode}
+                title={
+                  mode === 'chase'
+                    ? 'Mode: Mouse Chase (Click for Laser)'
+                    : mode === 'laser'
+                    ? 'Mode: Laser Toy (Click for Patrol)'
+                    : 'Mode: Bottom Patrol (Click for Chase)'
+                }
+                className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-emerald-500 transition-colors"
+              >
+                {mode === 'chase' ? (
+                  <Compass className="w-3.5 h-3.5 text-blue-500 animate-spin" />
+                ) : mode === 'laser' ? (
+                  <Crosshair className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+                ) : (
+                  <Navigation className="w-3.5 h-3.5 text-emerald-500" />
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={handleManualMeow}
@@ -403,17 +576,17 @@ export const CatMascot: React.FC = () => {
 
               <button
                 type="button"
-                onClick={toggleLoaf}
-                title={pose === 'loaf' ? 'Stretch out (Sploot)' : 'Loaf mode 💤'}
+                onClick={toggleSleep}
+                title={action === 'sleep' ? 'Wake up into Sploot' : 'Cozy Loaf mode 💤'}
                 className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-indigo-500 transition-colors"
               >
-                {pose === 'loaf' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                {action === 'sleep' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
               </button>
 
               <button
                 type="button"
                 onClick={() => setSoundEnabled((prev) => !prev)}
-                title={soundEnabled ? 'Mute Sounds' : 'Enable 8-Bit Meow 🔊'}
+                title={soundEnabled ? 'Mute Sounds' : 'Enable 8-Bit Meows 🔊'}
                 className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-apple-light-secondary dark:text-apple-dark-secondary transition-colors"
               >
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-blue-500" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -431,518 +604,43 @@ export const CatMascot: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* AUTHENTIC 2D PIXEL-ART CAT SPRITE (EXACTLY MATCHING USER'S IMAGE) */}
+        {/* AUTHENTIC 2D PIXEL-ART CAT SPRITE WITH FRAME-BY-FRAME ANIMATION */}
         <motion.div
           className="relative inline-block"
           style={{ transformOrigin: 'bottom center' }}
           animate={{
             scaleX: direction,
           }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.18 }}
         >
-          {/* Ground Ambient Shadow */}
+          {/* Ground Soft Ambient Shadow */}
           <div
-            className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/25 dark:bg-black/50 blur-[2px] pointer-events-none"
+            className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/25 dark:bg-black/45 blur-[2px] pointer-events-none"
             style={{
-              width: pose === 'sploot' ? 96 : 74,
-              height: 7,
+              width: action === 'sploot' ? 96 : action === 'run' ? 90 : 70,
+              height: 6,
             }}
           />
 
-          {/* RENDER THE EXACT PIXEL ART ACCORDING TO CURRENT POSE */}
-          {pose === 'sploot' ? (
-            // ==========================================
-            // POSE 1: SPLOOT / STRETCH (EXACT MATCH TO REFERENCE PHOTO!)
-            // ==========================================
-            <motion.svg
-              width="104"
-              height="60"
-              viewBox="0 0 52 30"
-              className="overflow-visible"
-              style={{ shapeRendering: 'crispEdges' }}
-              animate={{
-                y: [0, -1, 0], // Gentle breathing
-              }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              {/* Palette from reference image:
-                  Outline: #261C14
-                  Coat (Warm taupe): #BA9A93
-                  Light coat highlight: #CCAFA8
-                  Cream (belly/face/paws): #FFFBEA
-                  Pink (ears/blush): #DE7382
-              */}
-
-              {/* BLACK/DARK-BROWN OUTLINE */}
-              {/* Ears */}
-              <rect x="27" y="3" width="5" height="1" fill="#261C14" />
-              <rect x="26" y="4" width="2" height="3" fill="#261C14" />
-              <rect x="31" y="4" width="2" height="2" fill="#261C14" />
-
-              <rect x="38" y="3" width="5" height="1" fill="#261C14" />
-              <rect x="37" y="4" width="2" height="2" fill="#261C14" />
-              <rect x="42" y="4" width="2" height="3" fill="#261C14" />
-
-              {/* Head Outline */}
-              <rect x="32" y="5" width="6" height="1" fill="#261C14" />
-              <rect x="25" y="7" width="2" height="6" fill="#261C14" />
-              <rect x="43" y="7" width="2" height="6" fill="#261C14" />
-              <rect x="24" y="13" width="2" height="4" fill="#261C14" />
-              <rect x="44" y="13" width="2" height="4" fill="#261C14" />
-              <rect x="25" y="17" width="2" height="2" fill="#261C14" />
-              <rect x="43" y="17" width="2" height="2" fill="#261C14" />
-              <rect x="27" y="19" width="16" height="1" fill="#261C14" />
-
-              {/* Back / Body Outline */}
-              <rect x="15" y="12" width="11" height="2" fill="#261C14" />
-              <rect x="12" y="14" width="4" height="2" fill="#261C14" />
-              <rect x="8" y="17" width="5" height="2" fill="#261C14" />
-              <rect x="7" y="19" width="2" height="4" fill="#261C14" />
-              <rect x="8" y="23" width="6" height="2" fill="#261C14" />
-
-              {/* Front Outstretched Paw Outline */}
-              <rect x="38" y="18" width="2" height="4" fill="#261C14" />
-              <rect x="39" y="21" width="5" height="2" fill="#261C14" />
-              <rect x="43" y="19" width="2" height="3" fill="#261C14" />
-
-              {/* Underbelly Baseline Outline */}
-              <rect x="14" y="24" width="10" height="2" fill="#261C14" />
-              <rect x="23" y="23" width="14" height="2" fill="#261C14" />
-              <rect x="36" y="22" width="4" height="2" fill="#261C14" />
-
-              {/* Back Stretched Legs Outline (Sploot) */}
-              <rect x="11" y="25" width="8" height="2" fill="#261C14" />
-              <rect x="18" y="23" width="2" height="3" fill="#261C14" />
-
-              {/* TAIL (Curved with white tip, swaying gently) */}
-              <motion.g
-                animate={{ rotate: [-8, 8, -8] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ originX: '15px', originY: '15px' }}
-              >
-                {/* Tail Outline */}
-                <rect x="7" y="11" width="5" height="2" fill="#261C14" />
-                <rect x="11" y="12" width="6" height="2" fill="#261C14" />
-                <rect x="16" y="14" width="3" height="2" fill="#261C14" />
-                <rect x="6" y="12" width="2" height="3" fill="#261C14" />
-                <rect x="7" y="14" width="6" height="2" fill="#261C14" />
-                {/* Tail Fill: Taupe root, Cream tip */}
-                <rect x="12" y="13" width="5" height="2" fill="#BA9A93" />
-                <rect x="8" y="12" width="5" height="2" fill="#FFFBEA" />
-              </motion.g>
-
-              {/* COLOR FILLS */}
-              {/* TAUPE COAT (Back & Upper Head) */}
-              {/* Head top cap */}
-              <rect x="27" y="6" width="16" height="6" fill="#BA9A93" />
-              {/* Body back */}
-              <rect x="15" y="13" width="13" height="7" fill="#BA9A93" />
-              <rect x="12" y="15" width="4" height="6" fill="#BA9A93" />
-
-              {/* PINK INNER EARS & BLUSH */}
-              <rect x="28" y="4" width="3" height="4" fill="#DE7382" />
-              <rect x="39" y="4" width="3" height="4" fill="#DE7382" />
-              {/* Rosy Pink Cheeks */}
-              <rect x="26" y="12" width="3" height="3" fill="#DE7382" />
-              <rect x="41" y="12" width="3" height="3" fill="#DE7382" />
-
-              {/* CREAM CHUBBY FACE & UNDERBELLY */}
-              {/* Face bottom half */}
-              <rect x="29" y="11" width="12" height="8" fill="#FFFBEA" />
-              <rect x="27" y="12" width="16" height="6" fill="#FFFBEA" />
-              {/* Body cream underside */}
-              <rect x="16" y="17" width="21" height="6" fill="#FFFBEA" />
-              {/* Back Sploot foot cream */}
-              <rect x="8" y="19" width="6" height="4" fill="#FFFBEA" />
-              <rect x="12" y="23" width="6" height="2" fill="#FFFBEA" />
-              {/* Front Outstretched Paw Cream */}
-              <rect x="39" y="18" width="4" height="4" fill="#D6D1B9" />
-
-              {/* BIG EXPRESSIVE PIXEL EYES */}
-              {/* Left Eye */}
-              <rect x="30" y="10" width="3" height="3" fill="#261C14" />
-              <rect x="30" y="10" width="1" height="1" fill="#FFFFFF" /> {/* Eye shine */}
-              {/* Right Eye */}
-              <rect x="37" y="10" width="3" height="3" fill="#261C14" />
-              <rect x="37" y="10" width="1" height="1" fill="#FFFFFF" /> {/* Eye shine */}
-
-              {/* CUTE INVERTED V CAT MOUTH */}
-              <rect x="34" y="13" width="2" height="1" fill="#261C14" />
-              <rect x="33" y="14" width="1" height="1" fill="#261C14" />
-              <rect x="36" y="14" width="1" height="1" fill="#261C14" />
-            </motion.svg>
-          ) : pose === 'sit' ? (
-            // ==========================================
-            // POSE 2: UPRIGHT SITTING CAT
-            // ==========================================
-            <motion.svg
-              width="80"
-              height="64"
-              viewBox="0 0 40 32"
-              className="overflow-visible"
-              style={{ shapeRendering: 'crispEdges' }}
-              animate={{
-                y: [0, -1.5, 0],
-              }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              {/* Upright sitting cat */}
-              {/* Outline */}
-              <rect x="12" y="3" width="4" height="1" fill="#261C14" />
-              <rect x="22" y="3" width="4" height="1" fill="#261C14" />
-              <rect x="10" y="4" width="3" height="3" fill="#261C14" />
-              <rect x="25" y="4" width="3" height="3" fill="#261C14" />
-              <rect x="16" y="5" width="6" height="1" fill="#261C14" />
-
-              <rect x="9" y="7" width="2" height="9" fill="#261C14" />
-              <rect x="27" y="7" width="2" height="9" fill="#261C14" />
-              <rect x="11" y="16" width="16" height="1" fill="#261C14" />
-
-              {/* Body Outline */}
-              <rect x="11" y="17" width="2" height="11" fill="#261C14" />
-              <rect x="25" y="17" width="2" height="11" fill="#261C14" />
-              <rect x="12" y="28" width="15" height="2" fill="#261C14" />
-
-              {/* Tail Curved Beside */}
-              <motion.g
-                animate={{ rotate: [-6, 8, -6] }}
-                transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ originX: '26px', originY: '24px' }}
-              >
-                <rect x="26" y="19" width="6" height="2" fill="#261C14" />
-                <rect x="30" y="15" width="2" height="5" fill="#261C14" />
-                <rect x="28" y="13" width="3" height="3" fill="#261C14" />
-                <rect x="27" y="20" width="4" height="1" fill="#BA9A93" />
-                <rect x="29" y="14" width="2" height="5" fill="#FFFBEA" />
-              </motion.g>
-
-              {/* FILLS */}
-              {/* Head Top Taupe */}
-              <rect x="11" y="6" width="16" height="5" fill="#BA9A93" />
-              {/* Pink Ears */}
-              <rect x="13" y="4" width="3" height="3" fill="#DE7382" />
-              <rect x="22" y="4" width="3" height="3" fill="#DE7382" />
-
-              {/* Face Bottom Cream */}
-              <rect x="11" y="11" width="16" height="5" fill="#FFFBEA" />
-              {/* Pink Cheeks */}
-              <rect x="10" y="12" width="3" height="3" fill="#DE7382" />
-              <rect x="25" y="12" width="3" height="3" fill="#DE7382" />
-
-              {/* Eyes */}
-              <rect x="14" y="10" width="3" height="3" fill="#261C14" />
-              <rect x="14" y="10" width="1" height="1" fill="#FFFFFF" />
-              <rect x="21" y="10" width="3" height="3" fill="#261C14" />
-              <rect x="21" y="10" width="1" height="1" fill="#FFFFFF" />
-
-              {/* Inverted V Mouth */}
-              <rect x="18" y="13" width="2" height="1" fill="#261C14" />
-
-              {/* Body: Taupe back, Cream chest */}
-              <rect x="13" y="17" width="12" height="11" fill="#BA9A93" />
-              <rect x="16" y="17" width="6" height="11" fill="#FFFBEA" />
-
-              {/* White Front Paws */}
-              <rect x="14" y="25" width="4" height="3" fill="#FFFBEA" />
-              <rect x="20" y="25" width="4" height="3" fill="#FFFBEA" />
-            </motion.svg>
-          ) : pose === 'walk' ? (
-            // ==========================================
-            // POSE 3: WALKING / PROWLING CAT
-            // ==========================================
-            <motion.svg
-              width="88"
-              height="60"
-              viewBox="0 0 44 30"
-              className="overflow-visible"
-              style={{ shapeRendering: 'crispEdges' }}
-              animate={{
-                y: walkFrame % 2 === 0 ? 0 : -2,
-              }}
-              transition={{ duration: 0.18 }}
-            >
-              {/* Walking Cat Outline */}
-              <rect x="27" y="3" width="4" height="1" fill="#261C14" />
-              <rect x="36" y="3" width="4" height="1" fill="#261C14" />
-              <rect x="25" y="5" width="3" height="7" fill="#261C14" />
-              <rect x="39" y="5" width="3" height="7" fill="#261C14" />
-              <rect x="14" y="11" width="13" height="2" fill="#261C14" />
-              <rect x="11" y="13" width="4" height="2" fill="#261C14" />
-              <rect x="10" y="15" width="2" height="6" fill="#261C14" />
-
-              {/* Tail Held High in Air */}
-              <motion.g
-                animate={{ rotate: [-6, 6, -6] }}
-                transition={{ duration: 0.6, repeat: Infinity }}
-                style={{ originX: '12px', originY: '14px' }}
-              >
-                <rect x="9" y="5" width="2" height="9" fill="#261C14" />
-                <rect x="7" y="3" width="4" height="2" fill="#261C14" />
-                <rect x="10" y="6" width="1" height="8" fill="#BA9A93" />
-                <rect x="8" y="4" width="2" height="3" fill="#FFFBEA" />
-              </motion.g>
-
-              {/* FILLS */}
-              <rect x="27" y="5" width="13" height="6" fill="#BA9A93" />
-              <rect x="27" y="11" width="13" height="6" fill="#FFFBEA" />
-              <rect x="12" y="13" width="16" height="8" fill="#BA9A93" />
-              <rect x="16" y="16" width="12" height="5" fill="#FFFBEA" />
-
-              {/* Pink Ears & Cheeks */}
-              <rect x="28" y="4" width="3" height="3" fill="#DE7382" />
-              <rect x="37" y="4" width="3" height="3" fill="#DE7382" />
-              <rect x="26" y="12" width="2" height="3" fill="#DE7382" />
-              <rect x="39" y="12" width="2" height="3" fill="#DE7382" />
-
-              {/* Eyes */}
-              <rect x="30" y="10" width="3" height="3" fill="#261C14" />
-              <rect x="30" y="10" width="1" height="1" fill="#FFFFFF" />
-              <rect x="36" y="10" width="3" height="3" fill="#261C14" />
-              <rect x="36" y="10" width="1" height="1" fill="#FFFFFF" />
-
-              {/* Mouth */}
-              <rect x="34" y="13" width="2" height="1" fill="#261C14" />
-
-              {/* Alternating Paws Walk Cycle */}
-              {walkFrame === 0 || walkFrame === 2 ? (
-                <>
-                  <rect x="14" y="21" width="3" height="7" fill="#261C14" />
-                  <rect x="14" y="25" width="2" height="3" fill="#FFFBEA" />
-                  <rect x="19" y="21" width="3" height="5" fill="#261C14" />
-                  <rect x="19" y="24" width="2" height="2" fill="#FFFBEA" />
-                  <rect x="26" y="21" width="3" height="7" fill="#261C14" />
-                  <rect x="26" y="25" width="2" height="3" fill="#FFFBEA" />
-                  <rect x="31" y="21" width="3" height="5" fill="#261C14" />
-                  <rect x="31" y="24" width="2" height="2" fill="#FFFBEA" />
-                </>
-              ) : (
-                <>
-                  <rect x="16" y="21" width="3" height="5" fill="#261C14" />
-                  <rect x="16" y="24" width="2" height="2" fill="#FFFBEA" />
-                  <rect x="17" y="21" width="3" height="7" fill="#261C14" />
-                  <rect x="17" y="25" width="2" height="3" fill="#FFFBEA" />
-                  <rect x="24" y="21" width="3" height="5" fill="#261C14" />
-                  <rect x="24" y="24" width="2" height="2" fill="#FFFBEA" />
-                  <rect x="29" y="21" width="3" height="7" fill="#261C14" />
-                  <rect x="29" y="25" width="2" height="3" fill="#FFFBEA" />
-                </>
-              )}
-            </motion.svg>
-          ) : pose === 'meow' ? (
-            // ==========================================
-            // POSE 4: MEOWING WITH OPEN MOUTH
-            // ==========================================
-            <motion.svg
-              width="80"
-              height="64"
-              viewBox="0 0 40 32"
-              className="overflow-visible"
-              style={{ shapeRendering: 'crispEdges' }}
-              animate={{
-                rotate: [0, -4, 0, -2, 0],
-              }}
-              transition={{ duration: 0.35, repeat: 2 }}
-            >
-              {/* Head Tilted Up Meowing */}
-              <rect x="12" y="2" width="4" height="1" fill="#261C14" />
-              <rect x="22" y="2" width="4" height="1" fill="#261C14" />
-              <rect x="10" y="3" width="3" height="3" fill="#261C14" />
-              <rect x="25" y="3" width="3" height="3" fill="#261C14" />
-              <rect x="9" y="6" width="2" height="9" fill="#261C14" />
-              <rect x="27" y="6" width="2" height="9" fill="#261C14" />
-
-              {/* Fills */}
-              <rect x="11" y="5" width="16" height="5" fill="#BA9A93" />
-              <rect x="11" y="10" width="16" height="6" fill="#FFFBEA" />
-              <rect x="13" y="3" width="3" height="3" fill="#DE7382" />
-              <rect x="22" y="3" width="3" height="3" fill="#DE7382" />
-              <rect x="10" y="11" width="3" height="3" fill="#DE7382" />
-              <rect x="25" y="11" width="3" height="3" fill="#DE7382" />
-
-              {/* Happy Eyes: ^ ^ */}
-              <path d="M13 10L14.5 9L16 10" stroke="#261C14" strokeWidth="1.5" fill="none" />
-              <path d="M22 10L23.5 9L25 10" stroke="#261C14" strokeWidth="1.5" fill="none" />
-
-              {/* OPEN MEOW MOUTH WITH PINK TONGUE */}
-              <rect x="17" y="12" width="4" height="3" fill="#7F1D1D" />
-              <rect x="18" y="13" width="2" height="2" fill="#F43F5E" />
-
-              {/* Body */}
-              <rect x="13" y="16" width="12" height="12" fill="#BA9A93" />
-              <rect x="16" y="16" width="6" height="12" fill="#FFFBEA" />
-
-              {/* Front Paws */}
-              <rect x="14" y="25" width="4" height="3" fill="#FFFBEA" />
-              <rect x="20" y="25" width="4" height="3" fill="#FFFBEA" />
-
-              {/* Pixel "MEOW!" Puff */}
-              <motion.g
-                initial={{ opacity: 0, x: 2, scale: 0.8 }}
-                animate={{ opacity: [0, 1, 0], x: [-2, -8, -12], scale: [0.8, 1.2, 1.3] }}
-                transition={{ duration: 0.6, repeat: Infinity }}
-              >
-                <text x="0" y="8" fill="#EC4899" fontSize="6" fontWeight="bold" fontFamily="monospace">
-                  MEOW!
-                </text>
-              </motion.g>
-            </motion.svg>
-          ) : pose === 'pet' ? (
-            // ==========================================
-            // POSE 5: BEING PETTED / PURRING BLISS
-            // ==========================================
-            <motion.svg
-              width="80"
-              height="64"
-              viewBox="0 0 40 32"
-              className="overflow-visible"
-              style={{ shapeRendering: 'crispEdges' }}
-              animate={{
-                y: [0, 1.5, 0], // Leaning into the petting hand
-              }}
-              transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              {/* Petting Bliss Head */}
-              <rect x="12" y="4" width="14" height="2" fill="#261C14" />
-              <rect x="10" y="6" width="2" height="9" fill="#261C14" />
-              <rect x="26" y="6" width="2" height="9" fill="#261C14" />
-
-              {/* Ears flattened in pleasure */}
-              <rect x="9" y="4" width="4" height="3" fill="#BA9A93" />
-              <rect x="25" y="4" width="4" height="3" fill="#BA9A93" />
-
-              {/* Fills */}
-              <rect x="12" y="6" width="14" height="4" fill="#BA9A93" />
-              <rect x="12" y="10" width="14" height="6" fill="#FFFBEA" />
-
-              {/* Deep Pink Cheeks */}
-              <rect x="11" y="11" width="3" height="3" fill="#DE7382" />
-              <rect x="24" y="11" width="3" height="3" fill="#DE7382" />
-
-              {/* Blissful Smiling Closed Eyes: ^ ^ */}
-              <path d="M13 10L14.5 9L16 10" stroke="#261C14" strokeWidth="1.6" fill="none" />
-              <path d="M22 10L23.5 9L25 10" stroke="#261C14" strokeWidth="1.6" fill="none" />
-
-              {/* Inverted V Mouth */}
-              <rect x="18" y="13" width="2" height="1" fill="#261C14" />
-
-              {/* Body */}
-              <rect x="13" y="16" width="12" height="12" fill="#BA9A93" />
-              <rect x="16" y="16" width="6" height="12" fill="#FFFBEA" />
-
-              {/* Front Paws */}
-              <rect x="14" y="25" width="4" height="3" fill="#FFFBEA" />
-              <rect x="20" y="25" width="4" height="3" fill="#FFFBEA" />
-
-              {/* Floating Hearts */}
-              <motion.g
-                animate={{ opacity: [0, 1, 0], y: [-2, -8, -12] }}
-                transition={{ duration: 1.2, repeat: Infinity }}
-              >
-                <text x="17" y="2" fill="#EC4899" fontSize="7" fontWeight="bold">
-                  ♥
-                </text>
-              </motion.g>
-            </motion.svg>
-          ) : pose === 'loaf' ? (
-            // ==========================================
-            // POSE 6: CLASSIC CAT LOAF / SLEEPING
-            // ==========================================
-            <motion.svg
-              width="88"
-              height="52"
-              viewBox="0 0 44 26"
-              className="overflow-visible"
-              style={{ shapeRendering: 'crispEdges' }}
-              animate={{
-                y: [0, -1, 0],
-              }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              {/* Cat Loaf with Paws Tucked In */}
-              <rect x="8" y="6" width="14" height="2" fill="#261C14" />
-              <rect x="6" y="8" width="2" height="12" fill="#261C14" />
-              <rect x="22" y="8" width="16" height="2" fill="#261C14" />
-              <rect x="37" y="10" width="2" height="10" fill="#261C14" />
-              <rect x="7" y="20" width="31" height="2" fill="#261C14" />
-
-              {/* Ears */}
-              <rect x="9" y="4" width="3" height="3" fill="#DE7382" />
-              <rect x="18" y="4" width="3" height="3" fill="#DE7382" />
-
-              {/* Fills */}
-              <rect x="8" y="8" width="14" height="5" fill="#BA9A93" />
-              <rect x="8" y="13" width="14" height="7" fill="#FFFBEA" />
-              <rect x="22" y="10" width="15" height="10" fill="#BA9A93" />
-              <rect x="22" y="16" width="15" height="4" fill="#FFFBEA" />
-
-              {/* Sleeping Eyes: ◡ ◡ */}
-              <path d="M10 13L11.5 14L13 13" stroke="#261C14" strokeWidth="1.5" fill="none" />
-              <path d="M17 13L18.5 14L20 13" stroke="#261C14" strokeWidth="1.5" fill="none" />
-
-              {/* Pink Cheeks */}
-              <rect x="8" y="14" width="2" height="2" fill="#DE7382" />
-              <rect x="20" y="14" width="2" height="2" fill="#DE7382" />
-
-              {/* Inverted V Mouth */}
-              <rect x="14" y="15" width="2" height="1" fill="#261C14" />
-
-              {/* Tail Curled Around Body */}
-              <rect x="33" y="16" width="4" height="4" fill="#FFFBEA" />
-
-              {/* Floating Zzz */}
-              <motion.g
-                animate={{ opacity: [0, 1, 0], y: [-2, -8, -14], x: [0, 2, 4] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
-              >
-                <text x="14" y="4" fill="#6366F1" fontSize="5" fontWeight="bold" fontFamily="monospace">
-                  z
-                </text>
-                <text x="18" y="1" fill="#818CF8" fontSize="6" fontWeight="bold" fontFamily="monospace">
-                  Z
-                </text>
-              </motion.g>
-            </motion.svg>
-          ) : (
-            // ==========================================
-            // POSE 7: JUMP / POUNCE
-            // ==========================================
-            <motion.svg
-              width="88"
-              height="60"
-              viewBox="0 0 44 30"
-              className="overflow-visible"
-              style={{ shapeRendering: 'crispEdges' }}
-            >
-              {/* Leaping Cat in Mid-Air */}
-              <rect x="27" y="2" width="13" height="6" fill="#BA9A93" />
-              <rect x="27" y="8" width="13" height="6" fill="#FFFBEA" />
-              <rect x="12" y="8" width="16" height="8" fill="#BA9A93" />
-              <rect x="16" y="11" width="12" height="5" fill="#FFFBEA" />
-
-              {/* Pink Ears & Cheeks */}
-              <rect x="28" y="1" width="3" height="3" fill="#DE7382" />
-              <rect x="37" y="1" width="3" height="3" fill="#DE7382" />
-              <rect x="26" y="9" width="2" height="3" fill="#DE7382" />
-              <rect x="39" y="9" width="2" height="3" fill="#DE7382" />
-
-              {/* Big Eyes */}
-              <rect x="30" y="7" width="3" height="3" fill="#261C14" />
-              <rect x="30" y="7" width="1" height="1" fill="#FFFFFF" />
-              <rect x="36" y="7" width="3" height="3" fill="#261C14" />
-              <rect x="36" y="7" width="1" height="1" fill="#FFFFFF" />
-
-              {/* Outstretched Paws in Mid-Air */}
-              <rect x="38" y="14" width="5" height="3" fill="#FFFBEA" />
-              <rect x="37" y="14" width="6" height="3" stroke="#261C14" strokeWidth="0.8" fill="none" />
-
-              <rect x="6" y="16" width="6" height="3" fill="#FFFBEA" />
-              <rect x="5" y="16" width="7" height="3" stroke="#261C14" strokeWidth="0.8" fill="none" />
-
-              {/* Tail in Air */}
-              <rect x="8" y="5" width="2" height="8" fill="#BA9A93" />
-              <rect x="6" y="3" width="3" height="3" fill="#FFFBEA" />
-            </motion.svg>
-          )}
+          {/* RENDER THE ACTIVE FRAME FROM THE PRE-COMPILED PIXEL SPRITE ENGINE */}
+          <svg
+            width={currentSprite.width * 2.1}
+            height={currentSprite.height * 2.1}
+            viewBox={`0 0 ${currentSprite.width} ${currentSprite.height}`}
+            className="overflow-visible select-none drop-shadow-sm"
+            style={{ shapeRendering: 'crispEdges' }}
+          >
+            {currentSprite.rects.map((r, i) => (
+              <rect
+                key={i}
+                x={r.x}
+                y={r.y}
+                width={r.w}
+                height={r.h}
+                fill={r.fill}
+              />
+            ))}
+          </svg>
         </motion.div>
       </motion.div>
     </div>
