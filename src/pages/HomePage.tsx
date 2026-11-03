@@ -7,7 +7,6 @@ import { ProjectsSection } from '../components/sections/ProjectsSection';
 import { SkillsSection } from '../components/sections/SkillsSection';
 import { ContactSection } from '../components/sections/ContactSection';
 import { Footer } from '../components/layout/Footer';
-import { CatMascot } from '../components/mascot/CatMascot';
 import { usePortfolio } from '../context/PortfolioContext';
 
 export const HomePage: React.FC = () => {
@@ -38,8 +37,6 @@ export const HomePage: React.FC = () => {
         <ContactSection />
       </main>
       <Footer />
-      <CatMascot />
     </div>
   );
 };
-
